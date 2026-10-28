@@ -1,0 +1,114 @@
+{
+  "actuals_window": "2025-12-29..2026-02-01",
+  "base_url": "https://data.elexon.co.uk/bmrs/api/v1",
+  "files": [
+    {
+      "dataset": "FUELHH",
+      "file": "FUELHH_2025-12-29_2026-01-04.json",
+      "params": {
+        "fuelType": "WIND",
+        "settlementDateFrom": "2025-12-29",
+        "settlementDateTo": "2026-01-04"
+      },
+      "rows": 336,
+      "sha256": "b2c511548fb02f56c6def22c29909b84e63b5e6725c6328d161c0673389a486c"
+    },
+    {
+      "dataset": "FUELHH",
+      "file": "FUELHH_2026-01-05_2026-01-11.json",
+      "params": {
+        "fuelType": "WIND",
+        "settlementDateFrom": "2026-01-05",
+        "settlementDateTo": "2026-01-11"
+      },
+      "rows": 336,
+      "sha256": "977e7dcf7fe8ee1f868d9b832c81f1ed4ed52eac2aff4ebfb1dce991ac38debf"
+    },
+    {
+      "dataset": "FUELHH",
+      "file": "FUELHH_2026-01-12_2026-01-18.json",
+      "params": {
+        "fuelType": "WIND",
+        "settlementDateFrom": "2026-01-12",
+        "settlementDateTo": "2026-01-18"
+      },
+      "rows": 336,
+      "sha256": "2a195c4a178a348f7f2625e64d4991db23317d777ec326fd83d981c3a4d9bf3b"
+    },
+    {
+      "dataset": "FUELHH",
+      "file": "FUELHH_2026-01-19_2026-01-25.json",
+      "params": {
+        "fuelType": "WIND",
+        "settlementDateFrom": "2026-01-19",
+        "settlementDateTo": "2026-01-25"
+      },
+      "rows": 336,
+      "sha256": "15dd5a7de7de29a241c7241dcdf8760877b28a7fabf8e6a7be5ca5ce18f935b9"
+    },
+    {
+      "dataset": "FUELHH",
+      "file": "FUELHH_2026-01-26_2026-02-01.json",
+      "params": {
+        "fuelType": "WIND",
+        "settlementDateFrom": "2026-01-26",
+        "settlementDateTo": "2026-02-01"
+      },
+      "rows": 336,
+      "sha256": "f39d646ae670aa83e90ab83e2e6a0b006d4429b92a1c20852550105421e57774"
+    },
+    {
+      "dataset": "WINDFOR",
+      "file": "WINDFOR_2025-12-29_2026-01-04.json",
+      "params": {
+        "publishDateTimeFrom": "2025-12-29T00:00:00Z",
+        "publishDateTimeTo": "2026-01-05T00:00:00Z"
+      },
+      "rows": 4088,
+      "sha256": "6153d626b84183d6a75602acc600a6748e61a04be3c4a21cd62dbcb9cdd05326"
+    },
+    {
+      "dataset": "WINDFOR",
+      "file": "WINDFOR_2026-01-05_2026-01-11.json",
+      "params": {
+        "publishDateTimeFrom": "2026-01-05T00:00:00Z",
+        "publishDateTimeTo": "2026-01-12T00:00:00Z"
+      },
+      "rows": 4088,
+      "sha256": "380a02b2b7c78421fe71b7b6787469268795e8c0098db6614796d69f9e531eb7"
+    },
+    {
+      "dataset": "WINDFOR",
+      "file": "WINDFOR_2026-01-12_2026-01-18.json",
+      "params": {
+        "publishDateTimeFrom": "2026-01-12T00:00:00Z",
+        "publishDateTimeTo": "2026-01-19T00:00:00Z"
+      },
+      "rows": 4088,
+      "sha256": "1ac2d74bfe35de3ad3fd0841d0bda2b1d9ae3f2b7b04595518ae24cf4e8877f9"
+    },
+    {
+      "dataset": "WINDFOR",
+      "file": "WINDFOR_2026-01-19_2026-01-25.json",
+      "params": {
+        "publishDateTimeFrom": "2026-01-19T00:00:00Z",
+        "publishDateTimeTo": "2026-01-26T00:00:00Z"
+      },
+      "rows": 4088,
+      "sha256": "95f81aa10e2dfee41f28b0723aa3c63108aa736582c8cc79e8d43e0361e8e608"
+    },
+    {
+      "dataset": "WINDFOR",
+      "file": "WINDFOR_2026-01-26_2026-02-01.json",
+      "params": {
+        "publishDateTimeFrom": "2026-01-26T00:00:00Z",
+        "publishDateTimeTo": "2026-02-02T00:00:00Z"
+      },
+      "rows": 4088,
+      "sha256": "add2a296cb8034fc16d2af6abdd534d45c131c4c1f6c5bd7fb3b51dca92f84fc"
+    }
+  ],
+  "forecast_publish_window": "2025-12-29..2026-02-02 (end exclusive)",
+  "retrieved_at": "2026-10-28T10:04:50Z",
+  "script_version": "1.0.0"
+}
