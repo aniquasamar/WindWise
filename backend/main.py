@@ -9,7 +9,7 @@ app = FastAPI(title="hello")
 DB = Path(__file__).parent / "data" / "hello.sqlite"
 
 
-@app.get("/v1/health")
+@app.get("/api/v1/health")
 def health(request: Request):
     # Read-only, immutable open: the same mode the real app will use.
     con = sqlite3.connect(f"{DB.as_uri()}?mode=ro&immutable=1", uri=True)
@@ -25,7 +25,7 @@ def health(request: Request):
     }
 
 
-@app.get("/v1/cache-test")
+@app.get("/api/v1/cache-test")
 def cache_test(response: Response):
     response.headers["Cache-Control"] = "public, s-maxage=60"
     return {"server_time": time.time()}
