@@ -1,0 +1,1 @@
+"""Pure-ASGI middleware (no framework dependency, so each piece is unit-tested directly)."""

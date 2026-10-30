@@ -1,0 +1,1786 @@
+{
+  "info": {
+    "name": "Wind forecast API checks",
+    "description": "Happy paths, validation, routing, headers, rate limiting and caching for the read-only API. Choose the 'local' or 'production' environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Happy path",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"body\", () => pm.expect(pm.response.json()).to.eql({status: \"ok\"}));",
+                  "pm.test(\"not cached\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.eql(\"no-store\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Meta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/meta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "meta"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"window\", () => { pm.expect(b.window.first_delivery).to.eql(\"2026-01-02\"); pm.expect(b.window.last_delivery).to.eql(\"2026-02-01\"); });",
+                  "pm.test(\"defaults\", () => pm.expect(b.defaults.cutoff).to.eql(\"09:00\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast for 28 Jan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"24 hourly points\", () => pm.expect(b.points).to.have.lengthOf(24));",
+                  "pm.test(\"uses the 07:30 run before the 09:00 cutoff\", () => pm.expect(b.runs_used[0].publish_time).to.eql(\"2026-01-27T07:30:00Z\"));",
+                  "pm.test(\"no missing hours\", () => pm.expect(b.counts.missing_forecast).to.eql(0));",
+                  "pm.test(\"sign convention: error = forecast - actual\", () => { const p = b.points[5]; pm.expect(Math.abs(p.error_mw - (p.forecast_mw - p.actual_mw))).to.be.below(0.2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast, early cutoff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28&cutoff=05:00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28"
+                },
+                {
+                  "key": "cutoff",
+                  "value": "05:00"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "pm.test(\"picks the 04:30 run\", () => pm.expect(pm.response.json().runs_used[0].publish_time).to.eql(\"2026-01-27T04:30:00Z\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accuracy summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "summary"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"744 hours scored\", () => pm.expect(b.metrics.n).to.eql(744));",
+                  "pm.test(\"backtest 23 scored, 8 skipped\", () => { pm.expect(b.backtest.days_scored).to.eql(23); pm.expect(b.backtest.days_skipped).to.eql(8); });",
+                  "pm.test(\"insights present\", () => pm.expect(b.insights.length).to.be.at.least(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accuracy intervals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/intervals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "intervals"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "By hour",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/by-hour",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "by-hour"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "pm.test(\"24 hours\", () => pm.expect(pm.response.json().hours).to.have.lengthOf(24));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "By day",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/by-day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "by-day"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "pm.test(\"31 days\", () => pm.expect(pm.response.json().days).to.have.lengthOf(31));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "By forecast level",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/by-forecast-level",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "by-forecast-level"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Distribution",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/distribution",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "distribution"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Horizon, decision-time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/horizon?view=decision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "horizon"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "decision"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Horizon, full curve",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/horizon?view=full",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "horizon"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "full"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Run and cutoff sensitivity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "runs"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Benchmarks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/benchmarks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "benchmarks"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buffer backtest",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/buffer/backtest?confidence=0.9",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "buffer",
+                "backtest"
+              ],
+              "query": [
+                {
+                  "key": "confidence",
+                  "value": "0.9"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Validation (expect 422)",
+      "item": [
+        {
+          "name": "Missing delivery_date",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Date before the window",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Date after the window",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-02-02",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-02-02"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Not a date",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=not-a-date",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "not-a-date"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cutoff 25:00",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28&cutoff=25:00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28"
+                },
+                {
+                  "key": "cutoff",
+                  "value": "25:00"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cutoff not a 15-minute step",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28&cutoff=09:10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28"
+                },
+                {
+                  "key": "cutoff",
+                  "value": "09:10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cutoff outside allowed hours",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28&cutoff=02:00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28"
+                },
+                {
+                  "key": "cutoff",
+                  "value": "02:00"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Script injection attempt in cutoff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28&cutoff=%3Cscript%3Ealert(1)%3C/script%3E",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28"
+                },
+                {
+                  "key": "cutoff",
+                  "value": "%3Cscript%3Ealert(1)%3C/script%3E"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"input is not echoed\", () => pm.expect(pm.response.text()).to.not.include(\"script\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SQL injection attempt in date",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28%27%3B%20DROP%20TABLE%20forecasts%3B--",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28%27%3B%20DROP%20TABLE%20forecasts%3B--"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confidence 0.7",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast?delivery_date=2026-01-28&confidence=0.7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "delivery_date",
+                  "value": "2026-01-28"
+                },
+                {
+                  "key": "confidence",
+                  "value": "0.7"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reversed range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/summary?from=2026-01-20&to=2026-01-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01-20"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-01-10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Range outside the window",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/summary?from=2025-12-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2025-12-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown parameter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/summary?bogus=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "bogus",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bad view",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/horizon?view=nope",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "horizon"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "nope"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"standard error shape\", () => pm.expect(Object.keys(body.error).sort()).to.eql([\"code\", \"message\", \"request_id\"]));",
+                  "pm.test(\"error code\", () => pm.expect([\"validation_error\", \"unknown_parameter\"]).to.include(body.error.code));",
+                  "pm.test(\"request id repeated in body\", () => pm.expect(body.error.request_id).to.eql(pm.response.headers.get(\"X-Request-ID\")));",
+                  "pm.test(\"nothing internal leaks\", () => { const t = pm.response.text(); [\"Traceback\", \".py\", \"File \\\"\", \"sqlite\"].forEach(s => pm.expect(t).to.not.include(s)); });",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Routing",
+      "item": [
+        {
+          "name": "Unknown route (expect 404 JSON)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/does-not-exist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "does-not-exist"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"JSON, not an HTML page\", () => pm.response.to.be.json);",
+                  "pm.test(\"error code\", () => pm.expect(pm.response.json().error.code).to.eql(\"not_found\"));",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST to a GET endpoint (expect 405)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/forecast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "forecast"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 405\", () => pm.response.to.have.status(405));",
+                  "pm.test(\"JSON, not an HTML page\", () => pm.response.to.be.json);",
+                  "pm.test(\"error code\", () => pm.expect(pm.response.json().error.code).to.eql(\"method_not_allowed\"));",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE (expect 405)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/meta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "meta"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 405\", () => pm.response.to.have.status(405));",
+                  "pm.test(\"JSON, not an HTML page\", () => pm.response.to.be.json);",
+                  "pm.test(\"error code\", () => pm.expect(pm.response.json().error.code).to.eql(\"method_not_allowed\"));",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Headers, CORS and host",
+      "item": [
+        {
+          "name": "Security headers present",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/meta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "meta"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "pm.test(\"CSP forbids everything\", () => pm.expect(pm.response.headers.get(\"Content-Security-Policy\")).to.include(\"default-src 'none'\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Request id echoed when safe",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-ID",
+                "value": "postman-trace-0001"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/meta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "meta"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "pm.test(\"same id returned\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.eql(\"postman-trace-0001\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hostile origin gets no CORS permission",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "https://evil.example"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/meta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "meta"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "pm.test(\"no Access-Control-Allow-Origin\", () => pm.expect(pm.response.headers.has(\"Access-Control-Allow-Origin\")).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong Host header (expect 400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Host",
+                "value": "evil.example"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/meta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "meta"
+              ],
+              "query": []
+            },
+            "description": "Some Postman setups ignore a custom Host header. If this request does not reach the server with the changed Host, skip it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"rejected as an invalid host\", () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error.code).to.eql(\"invalid_host\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Rate limit (use the Collection Runner)",
+      "item": [
+        {
+          "name": "Burst request: run this folder with 150 iterations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/by-hour",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "by-hour"
+              ],
+              "query": []
+            },
+            "description": "Default limit is 120 requests per minute per client. For a faster demo start the server with RATE_LIMIT_PER_MIN=20 and run 40 iterations. Expect 200s, then 429s."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 or 429\", () => pm.expect([200, 429]).to.include(pm.response.code));",
+                  "if (pm.response.code === 429) {",
+                  "  pm.test(\"429 has Retry-After\", () => pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.at.least(1));",
+                  "  pm.test(\"429 body\", () => pm.expect(pm.response.json().error.code).to.eql(\"rate_limited\"));",
+                  "  pm.test(\"429 still has security headers\", () => pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\"));",
+                  "}",
+                  "console.log(\"status\", pm.response.code, \"remaining\", pm.response.headers.get(\"RateLimit-Remaining\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health is exempt from the limit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"always 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Caching (run in order)",
+      "item": [
+        {
+          "name": "Step 1: get a response and its ETag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "summary"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"responds with JSON\", () => pm.response.to.be.json);",
+                  "pm.test(\"has a request id\", () => pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.a(\"string\").and.have.lengthOf.at.least(8));",
+                  "pm.test(\"security headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\");",
+                  "  pm.expect(pm.response.headers.get(\"X-Frame-Options\")).to.eql(\"DENY\");",
+                  "  pm.expect(pm.response.headers.get(\"Referrer-Policy\")).to.eql(\"no-referrer\");",
+                  "});",
+                  "pm.test(\"cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));",
+                  "const etag = pm.response.headers.get(\"ETag\");",
+                  "pm.test(\"has a weak ETag\", () => pm.expect(etag).to.match(/^W\\//));",
+                  "pm.collectionVariables.set(\"etag\", etag);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 2: conditional request (expect 304)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "If-None-Match",
+                "value": "{{etag}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "summary"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"304 Not Modified\", () => pm.response.to.have.status(304));",
+                  "pm.test(\"no body\", () => pm.expect(pm.response.text()).to.eql(\"\"));",
+                  "pm.test(\"still cacheable\", () => pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"public\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 3: a different ETag gets the full body",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "If-None-Match",
+                "value": "W/\"something-else\""
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accuracy/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accuracy",
+                "summary"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 with body\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().metrics.n).to.eql(744); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "etag",
+      "value": ""
+    }
+  ]
+}

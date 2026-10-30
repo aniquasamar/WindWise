@@ -1,11 +1,16 @@
 """Application factory."""
+from typing import Optional
+
 from fastapi import FastAPI
 
 from app.api.errors import register_error_handlers
 from app.api.routes import router
+from app.config import Settings, get_settings
+from app.middleware.stack import install_middleware
 
 
-def create_app() -> FastAPI:
+def create_app(settings: Optional[Settings] = None) -> FastAPI:
+    settings = settings or get_settings()
     app = FastAPI(
         title="Day-ahead wind forecast portal API",
         version="1.0.0",
@@ -19,6 +24,7 @@ def create_app() -> FastAPI:
     )
     register_error_handlers(app)
     app.include_router(router)
+    install_middleware(app, settings)
     return app
 
 
