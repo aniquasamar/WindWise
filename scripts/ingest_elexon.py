@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Fetch Elexon wind actuals (FUELHH) and forecasts (WINDFOR); build data/wind.sqlite.
+"""Fetch Elexon wind actuals (FUELHH) and forecasts (WINDFOR); build backend/data/wind.sqlite.
 
 Two stages, so the database can always be rebuilt offline from the saved raw files:
 
   fetch -> data/raw/*.json + data/raw/manifest.json   (needs network and `requests`)
-  build -> data/wind.sqlite                           (standard library only)
+  build -> backend/data/wind.sqlite                   (standard library only)
 
 Usage (from the repository root):
   python scripts/ingest_elexon.py                  fetch, then build
@@ -31,7 +31,7 @@ SCRIPT_VERSION = "1.0.0"
 BASE_URL = "https://data.elexon.co.uk/bmrs/api/v1"
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
-DB_PATH = ROOT / "data" / "wind.sqlite"
+DB_PATH = ROOT / "backend" / "data" / "wind.sqlite"   # inside backend/ so it ships with the API
 
 # ---------------------------------------------------------------------------
 # Scope. Decisions are made 1-31 Jan 2026, so delivery days are 2 Jan - 1 Feb.

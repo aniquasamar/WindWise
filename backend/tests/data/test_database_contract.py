@@ -1,4 +1,4 @@
-"""Data contract tests for the real, committed database (data/wind.sqlite).
+"""Data contract tests for the real, committed database (backend/data/wind.sqlite).
 
 These guard the assumptions the whole app depends on. They are skipped (not failed)
 if the database has not been built yet.
@@ -10,9 +10,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-DB = ROOT / "data" / "wind.sqlite"
+DB = ROOT / "backend" / "data" / "wind.sqlite"
 
-pytestmark = pytest.mark.skipif(not DB.exists(), reason="data/wind.sqlite not built yet")
+pytestmark = pytest.mark.skipif(not DB.exists(), reason="backend/data/wind.sqlite not built yet")
 
 UTC = timezone.utc
 FIRST_DELIVERY = date(2026, 1, 2)

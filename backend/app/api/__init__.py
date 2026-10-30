@@ -1,0 +1,1 @@
+"""HTTP layer: thin. It validates requests and returns what app.services produces."""
