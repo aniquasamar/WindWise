@@ -2,12 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Day-Ahead Wind Monitor</title>
+    <meta name="description" content="WindWise shows the wind forecast available when UK day-ahead power is bought, and how far to trust it." />
+    <meta name="theme-color" content="#0b6b73" />
+    <title>WindWise – day-ahead wind forecast reliability</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Crect width='34' height='34' rx='9' fill='%230b6b73'/%3E%3Cpath d='M7 13h14a3.2 3.2 0 1 0-3.2-3.2M7 18.5h19.5a3.2 3.2 0 1 1-3.2 3.2M7 24h9.5' fill='none' stroke='white' stroke-width='2.3' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <script>
+      // Set the theme before first paint so dark mode never flashes light.
+      (function () {
+        try {
+          var saved = localStorage.getItem("windwise-theme");
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.dataset.theme = saved === "light" || saved === "dark" ? saved : dark ? "dark" : "light";
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>WindWise needs JavaScript to show its charts.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
