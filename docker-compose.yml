@@ -1,0 +1,27 @@
+# Run everything locally:  docker compose up --build   then open http://localhost:8080
+services:
+  backend:
+    build: ./backend
+    environment:
+      TRUST_PROXY: "1"            # client address comes from nginx, which sets X-Forwarded-For itself
+      RATE_LIMIT_PER_MIN: "120"
+    read_only: true               # the database is opened read-only and nothing else is written
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
