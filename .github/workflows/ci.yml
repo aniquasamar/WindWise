@@ -17,7 +17,7 @@ jobs:
     name: Backend (tests, data integrity, audit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -43,7 +43,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -63,7 +63,7 @@ jobs:
     name: Docker (build and smoke test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build and start both containers
         run: docker compose up -d --build --wait --wait-timeout 180
       - name: Smoke test through the public port
