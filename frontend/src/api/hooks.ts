@@ -34,9 +34,10 @@ export function useApi<T>(url: string | null): Result<T> {
 
   const cached = url !== null && cache.has(url);
   const settled = url === null ? undefined : (results[url] ?? (cached ? { data: cache.get(url) } : undefined));
+  const isSettled = settled !== undefined;
 
   useEffect(() => {
-    if (url === null || settled !== undefined) return;
+    if (url === null || isSettled) return;
     const controller = new AbortController();
     getJson<T>(url, controller.signal)
       .then((data) => {
@@ -50,7 +51,7 @@ export function useApi<T>(url: string | null): Result<T> {
       });
     return () => controller.abort();
     // `attempt` is a deliberate trigger: reload() clears the stored result and bumps it.
-  }, [url, settled, attempt]);
+  }, [url, isSettled, attempt]);
 
   const reload = useCallback(() => {
     if (url === null) return;

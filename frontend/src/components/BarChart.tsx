@@ -2,7 +2,8 @@ import { useRef, useState } from "react";
 import { bandIndex, barRect, valueDomain } from "../lib/bars";
 import { linePath } from "../lib/chart";
 import { linear } from "../lib/scale";
-import { ChartTooltip, useElementWidth } from "./chartParts";
+import { useElementWidth } from "../lib/useElementWidth";
+import { ChartTooltip } from "./chartParts";
 import type { TooltipRow } from "./chartParts";
 
 export interface Bar {
