@@ -117,7 +117,7 @@ cd frontend && npm run build             # strict TypeScript check and productio
 ├── data/raw/                   raw Elexon responses, with a manifest of SHA-256 hashes
 ├── postman/                    41-request collection and environments (local, production)
 └── docs/
-    ├── DATA_NOTES.md           what the data is, what was checked, results
+    ├── DATA_NOTES.md           what the data is, what was checked, results, open items
 ```
 
 ## API
@@ -172,7 +172,7 @@ Limitation: the rate limiter keeps its counters in memory. On a serverless platf
 
 ## Built with AI assistance
 
-I used an AI assistant (Anthropic's Claude) throughout this project. It drafted most of
+I used an AI assistant (Claude) throughout this project. It drafted most of
 the code, tests and documentation, and helped me think through the design. I directed the
 work and made the key decisions: the 09:00 decision time, the January decision window,
 comparing hourly forecasts with hourly averages of actuals, the extra analyses (horizon,
