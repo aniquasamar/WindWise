@@ -1,6 +1,6 @@
 # WindWise
 
-**Live app: https://b3v0we4d-efeg.vercel.app**  ·  Demo video: `<add the unlisted YouTube link>`
+**Live app: https://b3v0we4d-efeg.vercel.app**  ·  **Demo Video: https://youtu.be/xjqYtS__xjY**
 
 WindWise helps an energy buyer who must buy UK day-ahead power decide **how far to trust the wind forecast**. It uses national wind data from Elexon only, for purchase decisions made in January 2026 (delivery days 2 January to 1 February 2026).
 
@@ -117,8 +117,7 @@ cd frontend && npm run build             # strict TypeScript check and productio
 ├── data/raw/                   raw Elexon responses, with a manifest of SHA-256 hashes
 ├── postman/                    41-request collection and environments (local, production)
 └── docs/
-    ├── DATA_NOTES.md           what the data is, what was checked, results, open items
-    └── PROJECT_PLAN.md         decisions and the reasons for them, the maths, the plan
+    ├── DATA_NOTES.md           what the data is, what was checked, results
 ```
 
 ## API
@@ -173,7 +172,14 @@ Limitation: the rate limiter keeps its counters in memory. On a serverless platf
 
 ## Built with AI assistance
 
-This project was planned and built with substantial help from an AI assistant (Anthropic's Claude), used for architecture and design discussion, writing code and tests, and drafting documentation. Every result was run and reviewed, and the reasoning behind each decision is recorded in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md).
+I used an AI assistant (Anthropic's Claude) throughout this project. It drafted most of
+the code, tests and documentation, and helped me think through the design. I directed the
+work and made the key decisions: the 09:00 decision time, the January decision window,
+comparing hourly forecasts with hourly averages of actuals, the extra analyses (horizon,
+baseline, the experimental correction), TypeScript, Vercel with a public read-only API,
+two pages with light and dark themes, and the product name. I set up the repository,
+deployment, Docker and CI, ran and checked everything against the real Elexon data, and
+tested the API with Postman.
 
 ## Data attribution
 
